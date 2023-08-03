@@ -1,5 +1,5 @@
 absl-py==1.3.0
-aiohttp @ aiohttp_1646806579488/work
+aiohttp @ aiohttp
 aiosignal @ file:///tmp/build/80754af9/aiosignal_1637843061372/work
 alabaster==0.7.12
 altair==4.2.0
