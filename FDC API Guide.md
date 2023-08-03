@@ -68,3 +68,4 @@ The OpenAPI v3 spec for the API provides a complete specification of the API end
 ### The spec is also available on SwaggerHub at:
 
 https://app.swaggerhub.com/apis/fdcnal/food-data_central_api/1.0.1
+
