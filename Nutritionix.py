@@ -108,20 +108,21 @@ def main():
             df_copy.drop(df_copy.tail(1).index, inplace=True)
 
             fig = plt.figure(figsize=(10, 5))
-            bar_l = [i+1 for i in range(len(df_copy['Carbs (g)']))]
+            bar_l = np.arange(len(df_copy['Food']))
             ax = fig.add_axes([0,0,1,1])
-            ax.bar(bar_l, df_copy['Carbs (g)'], color='#eab676', align='center')
-            ax.bar(bar_l, df_copy['Protein (g)'], bottom=df_copy['Carbs (g)'], color='#a0e1e7', align='center')
-            ax.bar(bar_l, df_copy['Fat (g)'], bottom=[i+j for i, j in zip(df_copy['Carbs (g)'], df_copy['Protein (g)'])], color='#C6259c', align='center')
+
+            ax.barh(bar_l, df_copy['Carbs (g)'], color='#eab676', align='center')
+            ax.barh(bar_l, df_copy['Protein (g)'], left=df_copy['Carbs (g)'], color='#a0e1e7', align='center')
+            ax.barh(bar_l, df_copy['Fat (g)'], left=[i+j for i, j in zip(df_copy['Carbs (g)'], df_copy['Protein (g)'])], color='#C6259c', align='center')
 
             ax.legend(labels=['Carbs', 'Protein', 'Fat'])
             plt.title('Macronutrients Distribution per Ingredient')
-            plt.xlabel('Ingredients')
-            plt.ylabel('Macronutrients (grams)')
+            plt.xlabel('Macronutrients (grams)')
+            plt.ylabel('Ingredients')
 
-            # Setting the x-tick labels as the food names
-            ax.set_xticks(bar_l)
-            ax.set_xticklabels(df_copy['Food'], rotation=90)
+            # Setting the y-tick labels as the food names
+            ax.set_yticks(bar_l)
+            ax.set_yticklabels(df_copy['Food'])
 
             st.pyplot(fig)
 
