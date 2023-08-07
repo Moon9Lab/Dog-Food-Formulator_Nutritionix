@@ -91,11 +91,17 @@ def main():
             df.index = np.arange(1, len(df) + 1)
             df.index.name = None
 
-            df_styler = df.style.set_properties(**{'text-align': 'left'}).set_table_styles([
+            # Sort the DataFrame by 'Weight (g)' column, except the last row
+            sorted_data = df.iloc[:-1].sort_values('Weight (g)', ascending=False)
+
+            # Append the totals row
+            sorted_data = sorted_data.append(df.iloc[-1])
+
+            df_styler = sorted_data.style.set_properties(**{'text-align': 'left'}).set_table_styles([
                 dict(selector='th', props=[('text-align', 'left')]),
                 dict(selector='caption', props=[('caption-side', 'bottom')]),
             ]).set_table_attributes('style="font-family: Arial; font-size: 14px"').hide_index()
-            
+
             st.table(df_styler)
 
             # Display images in a grid-like format
@@ -107,6 +113,8 @@ def main():
             df_copy = df.copy()
             df_copy.drop(df_copy.tail(1).index, inplace=True)
 
+            # Sort by 'Protein > Fat
+            df_copy.sort_values(['Protein (g)', 'Fat (g)'], ascending=[False, False], inplace=True)
             fig = plt.figure(figsize=(10, 5))
             bar_l = np.arange(len(df_copy['Food']))
             ax = fig.add_axes([0,0,1,1])
@@ -124,6 +132,12 @@ def main():
             ax.set_yticks(bar_l)
             ax.set_yticklabels(df_copy['Food'])
 
+            # Adding data source to the plot
+            fig.subplots_adjust(bottom=0.2)
+            plt.text(0.95, -0.1, 'Data source: Nutritionix', 
+                    verticalalignment='bottom', horizontalalignment='right',
+                    transform=fig.transFigure, color='grey', fontsize=10)
+
             st.pyplot(fig)
 
             # Pie Chart
@@ -133,6 +147,10 @@ def main():
             ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=['#C6259c', '#a0e1e7', '#eab676'])
             ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
             plt.title('Sources of Calories')
+            plt.text(0.95, 0.01, 'Data source: Nutritionix', 
+                    verticalalignment='bottom', horizontalalignment='right',
+                    transform=fig.transFigure, color='grey', fontsize=10)
+            
             st.pyplot(fig1)
 
 if __name__ == "__main__":
