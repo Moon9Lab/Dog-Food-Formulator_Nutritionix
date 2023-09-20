@@ -11,7 +11,7 @@ from io import BytesIO
 import requests
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv("../Credential/.env")
 
 def get_nutrition_info(recipe):
     url = "https://trackapi.nutritionix.com/v2/natural/nutrients"
@@ -30,9 +30,10 @@ def get_nutrition_info(recipe):
     else:
         return None
 
+    
 def main():
     st.title('Nutrition Info')
-    recipe_text = st.text_area('Enter your recipe:', height=200)
+    recipe_text = st.text_area('Enter your recipe (natural language):', height=200)
     if recipe_text:
         recipe = recipe_text.split('\n')
         serving_size = 1
@@ -64,22 +65,24 @@ def main():
                 'Phosph. (mg)': 0,
             }
             data = []
+
             for item in nutrition_info:
                 row = {
                     'Food': item['food_name'],
-                    'Weight (g)': round(item['serving_weight_grams']),
-                    'Calories (kcal)': round(item['nf_calories']),
-                    'Fat (g)': round(item['nf_total_fat']),
-                    'Protein (g)': round(item['nf_protein']),
-                    'Carbs (g)': round(item['nf_total_carbohydrate']),
-                    'Fiber (g)': round(item['nf_dietary_fiber']),
-                    'Vit A (µg)': round(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 318), 0)),
-                    'Vit C (mg)': round(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 401), 0)),
-                    'Vit D (µg)': round(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 324), 0)),
-                    'Vit K (µg)': round(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 430), 0)),
-                    'Calcium (mg)': round(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 301), 0)),
-                    'Phosph. (mg)': round(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 305), 0)),
+                    'Weight (g)': int(item['serving_weight_grams']),
+                    'Calories (kcal)': int(item['nf_calories']),
+                    'Fat (g)': int(item['nf_total_fat']),
+                    'Protein (g)': int(item['nf_protein']),
+                    'Carbs (g)': int(item['nf_total_carbohydrate']),
+                    'Fiber (g)': int(item['nf_dietary_fiber']),
+                    'Vit A (µg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 318), 1)),
+                    'Vit C (mg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 401), 1)),
+                    'Vit D (µg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 324), 1)),
+                    'Vit K (µg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 430), 1)),
+                    'Calcium (mg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 301), 1)),
+                    'Phosph. (mg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 305), 1)),
                 }
+
                 for key in totals.keys():
                     if key in row:
                         totals[key] += row[key]
@@ -87,7 +90,8 @@ def main():
             totals['Food'] = 'Total'
             data.append(totals)
             df = pd.DataFrame(data)
-            df = df[['Food', 'Weight (g)', 'Calories (kcal)', 'Fat (g)', 'Protein (g)', 'Carbs (g)', 'Fiber (g)', 'Vit A (µg)', 'Vit C (mg)', 'Vit D (µg)', 'Vit K (µg)', 'Calcium (mg)', 'Phosph. (mg)']]
+            df = df[['Food', 'Weight (g)', 'Calories (kcal)', 'Fat (g)', 'Protein (g)', 'Carbs (g)', 'Fiber (g)', 
+                     'Vit A (µg)', 'Vit C (mg)', 'Vit D (µg)', 'Vit K (µg)', 'Calcium (mg)', 'Phosph. (mg)']]
             df.index = np.arange(1, len(df) + 1)
             df.index.name = None
 
