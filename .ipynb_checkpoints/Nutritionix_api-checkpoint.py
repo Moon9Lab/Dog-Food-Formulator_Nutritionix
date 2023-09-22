@@ -1,161 +1,76 @@
-import streamlit as st
+import requests
 import pandas as pd
-import numpy as np
-import requests
-import json
-from dotenv import load_dotenv
-import os
-import matplotlib.pyplot as plt
-from PIL import Image
-from io import BytesIO
-import requests
+from typing import Any, Dict, Optional, Union
 
-# Load environment variables from .env file
-load_dotenv("../Credential/.env")
-
-def get_nutrition_info(recipe):
-    url = "https://trackapi.nutritionix.com/v2/natural/nutrients"
-    headers = {
-        'x-app-id': os.getenv('NUTRITIONIX_APP_ID'),
-        'x-app-key': os.getenv('NUTRITIONIX_APP_KEY'),
-        'Content-Type': 'application/json',
-    }
-    data = {
-        'query': recipe,
-        'timezone': 'Australia/Sydney',
-    }
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return None
-
+class NutritionixAPI:
+    BASE_URL = "https://trackapi.nutritionix.com"
     
-def main():
-    st.title('Nutrition Info')
-    recipe_text = st.text_area('Enter your recipe (natural language):', height=200)
-    if recipe_text:
-        recipe = recipe_text.split('\n')
-        serving_size = 1
-        for line in recipe:
-            if "Serving size:" in line:
-                serving_size = int(line.split(":")[1].strip())
-        nutrition_info = []
-        images = []
-        for ingredient in recipe:
-            info = get_nutrition_info(ingredient)
-            if info:
-                nutrition_info.extend(info['foods'])
-                response = requests.get(info['foods'][0]['photo']['thumb'])
-                img = Image.open(BytesIO(response.content))
-                images.append(img)
-        if nutrition_info:
-            totals = {
-                'Weight (g)': 0,
-                'Calories (kcal)': 0,
-                'Fat (g)': 0,
-                'Protein (g)': 0,
-                'Carbs (g)': 0,
-                'Fiber (g)': 0,
-                'Vit A (µg)': 0,
-                'Vit C (mg)': 0,
-                'Vit D (µg)': 0,
-                'Vit K (µg)': 0,
-                'Calcium (mg)': 0,
-                'Phosph. (mg)': 0,
-            }
-            data = []
+    def __init__(self, app_id: str, app_key: str):
+        self.app_id = app_id
+        self.app_key = app_key
+        self.headers = {
+            'x-app-id': self.app_id,
+            'x-app-key': self.app_key,
+            'Content-Type': 'application/json'
+        }
+        self.id_to_name_mapping = self._load_id_to_name_mapping()
 
-            for item in nutrition_info:
-                row = {
-                    'Food': item['food_name'],
-                    'Weight (g)': int(item['serving_weight_grams']),
-                    'Calories (kcal)': int(item['nf_calories']),
-                    'Fat (g)': int(item['nf_total_fat']),
-                    'Protein (g)': int(item['nf_protein']),
-                    'Carbs (g)': int(item['nf_total_carbohydrate']),
-                    'Fiber (g)': int(item['nf_dietary_fiber']),
-                    'Vit A (µg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 318), 1)),
-                    'Vit C (mg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 401), 1)),
-                    'Vit D (µg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 324), 1)),
-                    'Vit K (µg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 430), 1)),
-                    'Calcium (mg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 301), 1)),
-                    'Phosph. (mg)': int(next((nutrient['value'] for nutrient in item['full_nutrients'] if nutrient['attr_id'] == 305), 1)),
-                }
+    def _load_id_to_name_mapping(self) -> Dict[int, str]:
+        mapping_file_path = "data/Nutrition_mapping.csv"
+        mapping_df = pd.read_csv(mapping_file_path)
+        self.id_to_unit_mapping = dict(zip(mapping_df['attr_id'], mapping_df['unit']))
+        return dict(zip(mapping_df['attr_id'], mapping_df['name']))
 
-                for key in totals.keys():
-                    if key in row:
-                        totals[key] += row[key]
-                data.append(row)
-            totals['Food'] = 'Total'
-            data.append(totals)
-            df = pd.DataFrame(data)
-            df = df[['Food', 'Weight (g)', 'Calories (kcal)', 'Fat (g)', 'Protein (g)', 'Carbs (g)', 'Fiber (g)', 
-                     'Vit A (µg)', 'Vit C (mg)', 'Vit D (µg)', 'Vit K (µg)', 'Calcium (mg)', 'Phosph. (mg)']]
-            df.index = np.arange(1, len(df) + 1)
-            df.index.name = None
 
-            # Sort the DataFrame by 'Weight (g)' column, except the last row
-            sorted_data = df.iloc[:-1].sort_values('Weight (g)', ascending=False)
+    def _make_request(self, method: str, endpoint: str, params: Optional[Dict[str, Any]] = None,
+                      data: Optional[Dict[str, Any]] = None) -> Union[Dict[str, Any], str]:
+        """
+        Makes a request to the Nutritionix API and returns the JSON response.
+        """
+        url = f"{self.BASE_URL}{endpoint}"
+        response = requests.request(method, url, headers=self.headers, params=params, json=data)
 
-            # Append the totals row
-            sorted_data = sorted_data.append(df.iloc[-1])
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return response.text
 
-            df_styler = sorted_data.style.set_properties(**{'text-align': 'left'}).set_table_styles([
-                dict(selector='th', props=[('text-align', 'left')]),
-                dict(selector='caption', props=[('caption-side', 'bottom')]),
-            ]).set_table_attributes('style="font-family: Arial; font-size: 14px"').hide_index()
+    def get_nutrients(self, query: str) -> Union[Dict[str, Any], str]:
+        """
+        Get detailed nutrient breakdown of any natural language text.
+        """
+        endpoint = "/v2/natural/nutrients"
+        data = {"query": query}
+        return self._make_request("POST", endpoint, data=data)
 
-            st.table(df_styler)
+    def search_instant(self, query: str) -> Union[Dict[str, Any], str]:
+        """
+        Populate any search interface with common foods and branded foods from Nutritionix.
+        """
+        endpoint = "/v2/search/instant"
+        params = {"query": query}
+        return self._make_request("GET", endpoint, params=params)
 
-            # Display images in a grid-like format
-            cols = st.columns(5)
-            for i, image in enumerate(images):
-                cols[i%5].image(image, width=100)
+    def get_item(self, nix_item_id: str) -> Union[Dict[str, Any], str]:
+        """
+        Look up the nutrition information for any branded food item by the nix_item_id.
+        """
+        endpoint = "/v2/search/item"
+        params = {"nix_item_id": nix_item_id}
+        return self._make_request("GET", endpoint, params=params)
 
-            # Stacked Bar Chart
-            df_copy = df.copy()
-            df_copy.drop(df_copy.tail(1).index, inplace=True)
+    def estimate_exercise(self, query: str, user_data: Optional[Dict[str, Any]] = None) -> Union[Dict[str, Any], str]:
+        """
+        Estimate calories burned for various exercises using natural language.
+        """
+        endpoint = "/v2/natural/exercise"
+        data = {"query": query, "user_data": user_data} if user_data else {"query": query}
+        return self._make_request("POST", endpoint, data=data)
 
-            # Sort by 'Protein > Fat
-            df_copy.sort_values(['Protein (g)', 'Fat (g)'], ascending=[False, False], inplace=True)
-            fig = plt.figure(figsize=(10, 5))
-            bar_l = np.arange(len(df_copy['Food']))
-            ax = fig.add_axes([0,0,1,1])
-
-            ax.barh(bar_l, df_copy['Carbs (g)'], color='#eab676', align='center')
-            ax.barh(bar_l, df_copy['Protein (g)'], left=df_copy['Carbs (g)'], color='#a0e1e7', align='center')
-            ax.barh(bar_l, df_copy['Fat (g)'], left=[i+j for i, j in zip(df_copy['Carbs (g)'], df_copy['Protein (g)'])], color='#C6259c', align='center')
-
-            ax.legend(labels=['Carbs', 'Protein', 'Fat'])
-            plt.title('Macronutrients Distribution per Ingredient')
-            plt.xlabel('Macronutrients (grams)')
-            plt.ylabel('Ingredients')
-
-            # Setting the y-tick labels as the food names
-            ax.set_yticks(bar_l)
-            ax.set_yticklabels(df_copy['Food'])
-
-            # Adding data source to the plot
-            fig.subplots_adjust(bottom=0.2)
-            plt.text(0.95, -0.1, 'Data source: Nutritionix', 
-                    verticalalignment='bottom', horizontalalignment='right',
-                    transform=fig.transFigure, color='grey', fontsize=10)
-
-            st.pyplot(fig)
-
-            # Pie Chart
-            fig1, ax1 = plt.subplots()
-            sizes = [totals['Fat (g)'], totals['Protein (g)'], totals['Carbs (g)']]
-            labels = 'Fat', 'Protein', 'Carbs'
-            ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=['#C6259c', '#a0e1e7', '#eab676'])
-            ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-            plt.title('Sources of Calories')
-            plt.text(0.95, 0.01, 'Data source: Nutritionix', 
-                    verticalalignment='bottom', horizontalalignment='right',
-                    transform=fig.transFigure, color='grey', fontsize=10)
-            
-            st.pyplot(fig1)
-
-if __name__ == "__main__":
-    main()
+    def get_locations(self, lat: float, lng: float) -> Union[Dict[str, Any], str]:
+        """
+        Returns a list of restaurant locations near a given lat/long coordinate.
+        """
+        endpoint = "/v2/locations"
+        params = {"ll": f"{lat},{lng}"}
+        return self._make_request("GET", endpoint, params=params)
