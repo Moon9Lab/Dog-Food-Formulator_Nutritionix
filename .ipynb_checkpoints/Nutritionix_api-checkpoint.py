@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 from typing import Any, Dict, Optional, Union
+from collections import Counter
 
 class NutritionixAPI:
     BASE_URL = "https://trackapi.nutritionix.com"
@@ -74,3 +75,61 @@ class NutritionixAPI:
         endpoint = "/v2/locations"
         params = {"ll": f"{lat},{lng}"}
         return self._make_request("GET", endpoint, params=params)
+
+    
+class NutrientCalculator:
+    
+    def __init__(self):
+        # Initialize Atwater factors for dogs
+        self.atwater_factors = {
+            "protein": 3.5,
+            "fat": 8.5,
+            "carbohydrate": 3.5
+        }
+    
+    def aggregate_nutrients(self, response):
+        # Aggregate nutrient values based on attr_id
+        aggregated_nutrients = Counter()
+        total_calories = 0  # Initialize total_calories
+        for food in response.get("foods", []):
+            for nutrient in food.get("full_nutrients", []):
+                attr_id = nutrient.get("attr_id")
+                value = nutrient.get("value", 0)
+                aggregated_nutrients[attr_id] += value
+            total_calories += food.get("nf_calories", 0)  # Sum up the nf_calories for each food item
+        aggregated_nutrients['total_calories'] = total_calories 
+        return aggregated_nutrients
+
+
+    
+    def calculate_calorie_content_me(self, aggregated_nutrients):
+        # Extract the macronutrients from the aggregated nutrients
+        protein = aggregated_nutrients.get(203, 0)
+        fat = aggregated_nutrients.get(204, 0)
+        carbohydrate = aggregated_nutrients.get(205, 0) 
+
+        # Calculate the metabolizable energy (ME) using dog-specific Atwater factors
+        metabolizable_energy = (
+            protein * self.atwater_factors["protein"] +
+            fat * self.atwater_factors["fat"] +
+            carbohydrate * self.atwater_factors["carbohydrate"]
+        )
+
+        caloric_content = metabolizable_energy * 10  # kcal/kg
+
+        return caloric_content
+
+    def display_top_10_nutrients(self, aggregated_nutrients, id_to_name_mapping, id_to_unit_mapping):
+        nutrients_with_names_and_units = {
+            id_to_name_mapping.get(attr_id, f"Unknown ({attr_id})"): 
+                f"{value} {id_to_unit_mapping.get(attr_id, 'unit')}"
+            for attr_id, value in aggregated_nutrients.items()
+        }
+        sorted_nutrients = sorted(
+            nutrients_with_names_and_units.items(), 
+            key=lambda item: item[1], 
+            reverse=True
+        )
+        top_10_nutrients = dict(sorted_nutrients[:10])
+        return top_10_nutrients
+    
