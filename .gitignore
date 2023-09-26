@@ -1,1 +1,8 @@
-.env
+# Ignore macOS system files
+.DS_Store
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore Python compiled files
+__pycache__/

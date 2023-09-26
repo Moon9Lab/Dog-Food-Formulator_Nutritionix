@@ -100,7 +100,6 @@ class NutrientCalculator:
         aggregated_nutrients['total_calories'] = total_calories 
         return aggregated_nutrients
 
-
     
     def calculate_calorie_content_me(self, aggregated_nutrients):
         # Extract the macronutrients from the aggregated nutrients
