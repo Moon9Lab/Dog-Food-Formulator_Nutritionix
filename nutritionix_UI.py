@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from dotenv import load_dotenv
 from collections import Counter
 from collections import defaultdict
@@ -23,7 +24,6 @@ atwater_factors = {
     "fat": 8.5,
 }
 
-
 def display_recipe_summary(response):
     # Create a summary of the recipe with food names and quantities
     summary_items = []
@@ -38,14 +38,14 @@ def display_recipe_summary(response):
         serving_unit = food.get("serving_unit", "g")
         calories = food.get("nf_calories", 0)
         
-        # Calculate total weight
+        # Calculate total weight and total calories
         total_weight += serving_qty
         total_calories += calories
         
         # Calculate total water (attr_id == 255) 
-        for nutrient in food.get("full_nutrients", []):
-            if nutrient.get("attr_id") == 255: 
-                total_water += nutrient.get("value", 0)
+        total_water += sum(nutrient.get("value", 0) \
+                           for nutrient in food.get("full_nutrients", []) \
+                           if nutrient.get("attr_id") == 255)
         
         summary_items.append((f"{food_name} ({serving_qty}{serving_unit})", serving_qty))
     
@@ -53,19 +53,21 @@ def display_recipe_summary(response):
     sorted_summary_strings = [item[0] for item in summary_items]
     
     # Calculate caloric density and metabolizable energy using the NutrientCalculator class
-    caloric_content = nutrient_calculator.calculate_calorie_content_me(aggregated_nutrients)
-    water_percentage = (total_water / total_weight) * 100
+    caloric_content_info = nutrient_calculator.calculate_calorie_content_me(aggregated_nutrients)
+    caloric_content_me = caloric_content_info['caloric_content']  
+    
+    water_percentage = (total_water / total_weight) * 100 if total_weight > 0 else 0
 
     st.subheader("Recipe Snapshot:")
     st.write(", ".join(sorted_summary_strings))
 
     # Create a DataFrame for the table
     table_data = {
-        "": ["Serving size", "Gross Energy", "Calorie Content (ME)", "Moisture % "],
+        "": ["Serving size", "Gross Energy", "Calorie Content (ME)", "Moisture %"],
         "Value": [
             f"{total_weight:.2f} g", 
             f"{total_calories:.2f} Kcal",
-            f"{caloric_content:.2f} kcal/kg",
+            f"{caloric_content_me:.2f} kcal/kg",  # Using 'caloric_content_me' here
             f"{water_percentage:.2f} %"
         ]
     }
@@ -77,35 +79,36 @@ def display_recipe_summary(response):
 
 
 def display_macronutrient_pie_chart(aggregated_nutrients):
-    # Extract macronutrient data and total calories from aggregated_nutrients
-    proteins = aggregated_nutrients.get(203, 0)
-    fats = aggregated_nutrients.get(204, 0)
-    carbohydrates = aggregated_nutrients.get(205, 0)
-    total_calories = aggregated_nutrients.get('total_calories', 1)
-
-    # Calculate the caloric contribution of each macronutrient
-    protein_calories = proteins * 4  # 4 kcal per gram of protein
-    fat_calories = fats * 9  # 9 kcal per gram of fat
-    carbohydrate_calories = carbohydrates * 4  # 4 kcal per gram of carbohydrate
+    # Extract data from calculate_calorie_content_me
+    caloric_content_info = nutrient_calculator.calculate_calorie_content_me(aggregated_nutrients)
+    protein_me = caloric_content_info['protein_me']
+    fat_me = caloric_content_info['fat_me']
+    carbohydrate_me = caloric_content_info['carbohydrate_me']
+    metabolizable_energy = caloric_content_info['metabolizable_energy']
     
-    # Compute percentages
-    sizes = [protein_calories, fat_calories, carbohydrate_calories]
+    # Compute percentages, handling NaN values
+    sizes = [protein_me, fat_me, carbohydrate_me]
+    percentages = [np.nan_to_num((calories / metabolizable_energy) * 100) for calories in sizes]
+    
+    # Define labels and custom colors for each macronutrient
     labels = ['Proteins', 'Fats', 'Carbohydrates']
-    percentages = [(calories / total_calories) * 100 for calories in sizes]
+    colors = ['#19A6B8','#B4217D','#F0AB02']
     
-    # Define custom colors for each macronutrient
-    colors = ['#B4217D', '#F0AB02', '#19A6B8']
-    
+
     # Plotting the Pie chart with updated visual elements
-    fig, ax = plt.subplots()
-    ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
-    ax.axis('equal')  # Equal aspect ratio ensures the pie chart is circular.
+    labels_with_percentages = [
+    f"{label} {percentage:.1f}%"
+    for label, percentage in zip(labels, percentages)]
+
+    fig, ax = plt.subplots(figsize=(5,5))
+    ax.pie(percentages, colors=colors, startangle=90)
+    ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
     plt.title('Sources of Calories')
-    
-    # Display the pie chart in Streamlit
+
+    # Adjust the location of the legend and place it in the upper right corner without overlap
+    ax.legend(labels_with_percentages, loc='upper right', bbox_to_anchor=(1.1, 1))
+
     st.pyplot(fig)
-
-
 
 def get_nutrient_info():
     # UI presentation

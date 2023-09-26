@@ -106,17 +106,22 @@ class NutrientCalculator:
         protein = aggregated_nutrients.get(203, 0)
         fat = aggregated_nutrients.get(204, 0)
         carbohydrate = aggregated_nutrients.get(205, 0) 
-
-        # Calculate the metabolizable energy (ME) using dog-specific Atwater factors
-        metabolizable_energy = (
-            protein * self.atwater_factors["protein"] +
-            fat * self.atwater_factors["fat"] +
-            carbohydrate * self.atwater_factors["carbohydrate"]
-        )
-
+        
+        # convert to calories per atwater_factor
+        protein_me = protein * self.atwater_factors["protein"] 
+        fat_me = fat * self.atwater_factors["fat"] 
+        carbohydrate_me = carbohydrate * self.atwater_factors["carbohydrate"]
+            
+        metabolizable_energy = protein_me + fat_me + carbohydrate_me
         caloric_content = metabolizable_energy * 10  # kcal/kg
 
-        return caloric_content
+        
+        return {
+        "caloric_content": caloric_content,
+        "protein_me": protein_me,
+        "fat_me": fat_me,
+        "carbohydrate_me": carbohydrate_me,
+        "metabolizable_energy": metabolizable_energy}
 
     def display_top_10_nutrients(self, aggregated_nutrients, id_to_name_mapping, id_to_unit_mapping):
         nutrients_with_names_and_units = {
