@@ -110,6 +110,50 @@ def display_macronutrient_pie_chart(aggregated_nutrients):
 
     st.pyplot(fig)
 
+def food_item_calorie_chart(response):
+    # Initialize lists to hold data
+    food_names = []
+    proteins_list = []
+    fats_list = []
+    carbohydrates_list = []
+    
+    # Iterate through each food item in the response
+    for food in response.get("foods", []):
+        food_name = food.get("food_name", "Unknown")
+        
+        # Use Atwater factors to calculate the calorie content of each macronutrient
+        proteins = food.get("nf_protein", 0) * atwater_factors["protein"]
+        fats = food.get("nf_total_fat", 0) * atwater_factors["fat"]
+        carbohydrates = food.get("nf_total_carbohydrate", 0) * atwater_factors["carbohydrate"]
+        
+        # Append to lists
+        food_names.append(food_name)
+        proteins_list.append(proteins)
+        fats_list.append(fats)
+        carbohydrates_list.append(carbohydrates)
+    
+    # Create a DataFrame
+    df = pd.DataFrame({
+        'Proteins': proteins_list,
+        'Fats': fats_list,
+        'Carbohydrates': carbohydrates_list
+    }, index=food_names)
+    
+    # Sort the DataFrame by Carbohydrates, Proteins, and Fats
+    df = df.sort_values(by=['Proteins','Fats','Carbohydrates'], ascending=[False, False, False])
+    
+    # Plotting
+    ax = df.plot(kind='barh', stacked=True, color=['#19A6B8','#B4217D','#F0AB02'])
+    plt.title('Calories for Each Food Item')
+    plt.ylabel('Food Items')
+    plt.xlabel('Calories (kcal)')
+    plt.legend(loc='upper right')
+    
+    # Display in Streamlit
+    st.pyplot(ax.figure)
+
+
+
 def get_nutrient_info():
     # UI presentation
     
@@ -143,6 +187,7 @@ def get_nutrient_info():
 
                 # Display full details
                 st.subheader("Full Details:")
+                food_item_calorie_chart(response)
                 st.json(response)
 
 # Call the function to get nutrient info based on user input

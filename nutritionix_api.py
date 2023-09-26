@@ -96,7 +96,7 @@ class NutrientCalculator:
                 attr_id = nutrient.get("attr_id")
                 value = nutrient.get("value", 0)
                 aggregated_nutrients[attr_id] += value
-            total_calories += food.get("nf_calories", 0)  # Sum up the nf_calories for each food item
+            total_calories += food.get("nf_calories", 0)  
         aggregated_nutrients['total_calories'] = total_calories 
         return aggregated_nutrients
 
