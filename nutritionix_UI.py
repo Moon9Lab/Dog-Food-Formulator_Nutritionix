@@ -6,9 +6,11 @@ import numpy as np
 from dotenv import load_dotenv
 from collections import Counter
 from collections import defaultdict
+import seaborn as sns
 
 # Importing necessary modules and functions from nutritionix_api.py
 from nutritionix_api import NutritionixAPI, NutrientCalculator
+import constants
 
 # Load API keys from .env file
 load_dotenv("../Credential/.env")
@@ -18,14 +20,9 @@ app_key = os.getenv('NUTRITIONIX_APP_KEY')
 # Initialize the Nutritionix_api client
 nutritionix_api = NutritionixAPI(app_id=app_id, app_key=app_key)
 nutrient_calculator = NutrientCalculator()
-atwater_factors = {
-    "protein": 3.5,
-    "carbohydrate": 3.5,
-    "fat": 8.5,
-}
 
+# 1. Create a summary of the recipe with food names and quantities
 def display_recipe_summary(response):
-    # Create a summary of the recipe with food names and quantities
     summary_items = []
     total_weight = 0
     total_water = 0
@@ -77,7 +74,7 @@ def display_recipe_summary(response):
     # Display the table in Streamlit
     st.table(table_df.set_index(""))
 
-
+# 2. Dsipaly pie chart for calorie source
 def display_macronutrient_pie_chart(aggregated_nutrients):
     # Extract data from calculate_calorie_content_me
     caloric_content_info = nutrient_calculator.calculate_calorie_content_me(aggregated_nutrients)
@@ -109,7 +106,8 @@ def display_macronutrient_pie_chart(aggregated_nutrients):
     ax.legend(labels_with_percentages, loc='upper right', bbox_to_anchor=(1.1, 1))
 
     st.pyplot(fig)
-
+    
+# 4. Display how each food contribute each calorie source
 def food_item_calorie_chart(response):
     # Initialize lists to hold data
     food_names = []
@@ -122,9 +120,9 @@ def food_item_calorie_chart(response):
         food_name = food.get("food_name", "Unknown")
         
         # Use Atwater factors to calculate the calorie content of each macronutrient
-        proteins = food.get("nf_protein", 0) * atwater_factors["protein"]
-        fats = food.get("nf_total_fat", 0) * atwater_factors["fat"]
-        carbohydrates = food.get("nf_total_carbohydrate", 0) * atwater_factors["carbohydrate"]
+        proteins = food.get("nf_protein", 0) * constants.atwater_factors["protein"]
+        fats = food.get("nf_total_fat", 0) * constants.atwater_factors["fat"]
+        carbohydrates = food.get("nf_total_carbohydrate", 0) * constants.atwater_factors["carbohydrate"]
         
         # Append to lists
         food_names.append(food_name)
@@ -152,11 +150,86 @@ def food_item_calorie_chart(response):
     # Display in Streamlit
     st.pyplot(ax.figure)
 
-
-
-def get_nutrient_info():
-    # UI presentation
+# 3.1 Comparison to AAFCO target
+def display_nutrient_radar_chart(comparison_results, title):
+    # Extract nutrient names, actual values, and target values from comparison_results
+    nutrient_names = list(comparison_results.keys())
+    actual_values = [comparison_results[nutrient]['Actual'] for nutrient in nutrient_names]
+    target_values_adult = [comparison_results[nutrient]['Target Adult'] for nutrient in nutrient_names]
+    target_values_puppy = [comparison_results[nutrient]['Target Puppy'] for nutrient in nutrient_names]
     
+    # Compute angle for each axis in the radar chart
+    num_vars = len(nutrient_names)
+    angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
+    angles += angles[:1]
+    
+    # Repeat the first value to close the circle in radar chart
+    actual_values += actual_values[:1]
+    target_values_adult += target_values_adult[:1]
+    target_values_puppy += target_values_puppy[:1]
+    
+    # Plot the radar chart
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    ax.fill(angles, actual_values, color='red', alpha=0.25, label='Actual')
+    ax.fill(angles, target_values_adult, color='blue', alpha=0.25, label='Target Adult')
+    ax.fill(angles, target_values_puppy, color='green', alpha=0.25, label='Target Puppy')
+    ax.plot(angles, actual_values, color='red', linewidth=2)
+    ax.plot(angles, target_values_adult, color='blue', linewidth=2)
+    ax.plot(angles, target_values_puppy, color='green', linewidth=2)
+    
+    # Label the axes with nutrient names
+    ax.set_yticklabels([])
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(nutrient_names)
+    
+    # Add legend and title
+    ax.legend(loc='upper right')
+    plt.title(title)
+    
+    # Display the radar chart in Streamlit
+    st.pyplot(fig)
+
+# 3.2 Display how each food contribute each target key
+# def food_item_nutrient_chart(response):
+#     # Initialize a dictionary to hold data
+#     food_data = {}
+    
+#     # Iterate through each food item in the response
+#     for food in response.get("foods", []):
+#         food_name = food.get("food_name", "Unknown")
+        
+#         # Initialize a dictionary for this food item
+#         food_data[food_name] = {}
+        
+#         # Iterate through each target nutrient and calculate the quantity in this food item
+#         for target in aafco_cc_protein_targets:
+#             attr_id = target["attr_id"]
+#             aafco_nutrient = target["aafco_nutrient"]
+            
+#             # Get the quantity of this nutrient in the current food item
+#             nutrient_quantity = food.get("full_nutrients", {}).get(attr_id, 0)
+            
+#             # Add the nutrient quantity to the food_data dictionary
+#             food_data[food_name][aafco_nutrient] = nutrient_quantity
+    
+#     # Convert the nested dictionary to a DataFrame
+#     df = pd.DataFrame.from_dict(food_data, orient='index')
+    
+#     # Create a heatmap
+#     plt.figure(figsize=(10, len(food_data)/2))  # Adjust size as needed
+#     sns.heatmap(df, annot=True, cmap="YlGnBu", cbar_kws={'label': 'Quantity'})
+#     plt.title('Nutrient Composition for Each Food Item')
+#     plt.ylabel('Food Items')
+#     plt.xlabel('Nutrients')
+    
+#     # Display in Streamlit
+#     st.pyplot(plt)
+
+
+
+# 5.final UI presentation
+def get_nutrient_info():
+ 
     st.title("Nutritionix API")
     ingredients_input = st.text_area("Enter ingredient list:")
     
@@ -176,6 +249,7 @@ def get_nutrient_info():
                                     nutritionix_api.id_to_name_mapping,
                                     nutritionix_api.id_to_unit_mapping)
                 
+                
                 col1, col2 = st.columns(2)
                 with col1:
                     st.subheader("Top 10 Nutrients:")
@@ -184,8 +258,17 @@ def get_nutrient_info():
                 with col2:
                     # Corrected the function call with the right parameters
                     display_macronutrient_pie_chart(aggregated_nutrients)
-
-                # Display full details
+                
+                #3 Compare actual to target
+                st.subheader("Compare to AAFCO_nutrient Profile")
+                comparison_results = nutrient_calculator.compare_against_targets(aggregated_nutrients)
+                #food_item_nutrient_chart(response)
+                
+                # AAFCO protein target
+                chart_title = "AAFCO Amino acid target"
+                display_nutrient_radar_chart(comparison_results, chart_title) 
+                
+                #4 Display full details
                 st.subheader("Full Details:")
                 food_item_calorie_chart(response)
                 st.json(response)

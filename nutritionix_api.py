@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import constants
 from typing import Any, Dict, Optional, Union
 from collections import Counter
 
@@ -79,14 +80,6 @@ class NutritionixAPI:
     
 class NutrientCalculator:
     
-    def __init__(self):
-        # Initialize Atwater factors for dogs
-        self.atwater_factors = {
-            "protein": 3.5,
-            "fat": 8.5,
-            "carbohydrate": 3.5
-        }
-    
     def aggregate_nutrients(self, response):
         # Aggregate nutrient values based on attr_id
         aggregated_nutrients = Counter()
@@ -108,13 +101,12 @@ class NutrientCalculator:
         carbohydrate = aggregated_nutrients.get(205, 0) 
         
         # convert to calories per atwater_factor
-        protein_me = protein * self.atwater_factors["protein"] 
-        fat_me = fat * self.atwater_factors["fat"] 
-        carbohydrate_me = carbohydrate * self.atwater_factors["carbohydrate"]
+        protein_me = protein * constants.atwater_factors["protein"]
+        fat_me = fat * constants.atwater_factors["fat"]
+        carbohydrate_me = carbohydrate * constants.atwater_factors["carbohydrate"]
             
         metabolizable_energy = protein_me + fat_me + carbohydrate_me
         caloric_content = metabolizable_energy * 10  # kcal/kg
-
         
         return {
         "caloric_content": caloric_content,
@@ -136,4 +128,32 @@ class NutrientCalculator:
         )
         top_10_nutrients = dict(sorted_nutrients[:10])
         return top_10_nutrients
-    
+
+    def compare_against_targets(self, aggregated_nutrients):
+        
+        from constants import aafco_cc_protein_targets
+        comparison_results = {}
+        
+        # Iterate through each nutrient target in the AAFCO targets
+        for target in aafco_cc_protein_targets:
+            attr_id = target["attr_id"]
+            aafco_nutrient = target["aafco_nutrient"]
+            
+            # Get the actual nutrient value from the aggregated nutrients
+            actual_value = aggregated_nutrients.get(attr_id, 0)
+            
+            # Get the target values for both 'Puppy & Growth' and 'Adult'
+            target_value_puppy = target["Puppy & Growth"]
+            target_value_adult = target["Adult"]
+            
+            # Add the comparison results to the dictionary
+            comparison_results[aafco_nutrient] = {
+                "Actual": actual_value,
+                "Target Puppy": target_value_puppy,
+                "Target Adult": target_value_adult
+            }
+        
+        return comparison_results
+
+
+
