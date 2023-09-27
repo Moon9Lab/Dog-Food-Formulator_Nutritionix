@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from collections import Counter
 from collections import defaultdict
 import seaborn as sns
+import plotly.express as px
+import plotly.figure_factory as ff
+import plotly.graph_objects as go
 
 # Importing necessary modules and functions from nutritionix_api.py
 from nutritionix_api import NutritionixAPI, NutrientCalculator
@@ -107,7 +110,7 @@ def display_macronutrient_pie_chart(aggregated_nutrients):
 
     st.pyplot(fig)
     
-# 4. Display how each food contribute each calorie source
+# 3. Display how each food contribute each calorie source
 def food_item_calorie_chart(response):
     # Initialize lists to hold data
     food_names = []
@@ -150,7 +153,8 @@ def food_item_calorie_chart(response):
     # Display in Streamlit
     st.pyplot(ax.figure)
 
-# 3.1 Comparison to AAFCO target
+
+# 4.1 Comparison to AAFCO target
 def display_nutrient_radar_chart(comparison_results, title):
     # Extract nutrient names, actual values, and target values from comparison_results
     nutrient_names = list(comparison_results.keys())
@@ -158,73 +162,80 @@ def display_nutrient_radar_chart(comparison_results, title):
     target_values_adult = [comparison_results[nutrient]['Target Adult'] for nutrient in nutrient_names]
     target_values_puppy = [comparison_results[nutrient]['Target Puppy'] for nutrient in nutrient_names]
     
-    # Compute angle for each axis in the radar chart
-    num_vars = len(nutrient_names)
-    angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
-    angles += angles[:1]
+    # Create a DataFrame
+    df = pd.DataFrame(dict(
+        r=actual_values + actual_values[:1],
+        theta=nutrient_names + nutrient_names[:1]
+    ))
     
-    # Repeat the first value to close the circle in radar chart
-    actual_values += actual_values[:1]
-    target_values_adult += target_values_adult[:1]
-    target_values_puppy += target_values_puppy[:1]
+    fig = px.line_polar(df, r='r', theta='theta', line_close=True, line_shape='linear')
+    fig.update_traces(fill='toself', line=dict(color='red'))  # Set color for Actual
+    fig.data[0].name = 'Actual'
     
-    # Plot the radar chart
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-    ax.fill(angles, actual_values, color='red', alpha=0.25, label='Actual')
-    ax.fill(angles, target_values_adult, color='blue', alpha=0.25, label='Target Adult')
-    ax.fill(angles, target_values_puppy, color='green', alpha=0.25, label='Target Puppy')
-    ax.plot(angles, actual_values, color='red', linewidth=2)
-    ax.plot(angles, target_values_adult, color='blue', linewidth=2)
-    ax.plot(angles, target_values_puppy, color='green', linewidth=2)
+    # Add Target Adult trace
+    target_adult_df = pd.DataFrame(dict(
+        r=target_values_adult + target_values_adult[:1],
+        theta=nutrient_names + nutrient_names[:1]
+    ))
+    fig.add_trace(go.Scatterpolar(r=target_adult_df['r'], theta=target_adult_df['theta'], fill='toself', line=dict(color='blue'), name='Target Adult'))
     
-    # Label the axes with nutrient names
-    ax.set_yticklabels([])
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(nutrient_names)
+    # Add Target Puppy trace
+    target_puppy_df = pd.DataFrame(dict(
+        r=target_values_puppy + target_values_puppy[:1],
+        theta=nutrient_names + nutrient_names[:1]
+    ))
+    fig.add_trace(go.Scatterpolar(r=target_puppy_df['r'], theta=target_puppy_df['theta'], fill='toself', line=dict(color='green'), name='Target Puppy'))
     
     # Add legend and title
-    ax.legend(loc='upper right')
-    plt.title(title)
+    fig.update_layout(
+        title=title,
+        polar=dict(radialaxis=dict(visible=True)),
+        showlegend=True
+    )
     
     # Display the radar chart in Streamlit
-    st.pyplot(fig)
+    st.plotly_chart(fig)
 
-# 3.2 Display how each food contribute each target key
-# def food_item_nutrient_chart(response):
-#     # Initialize a dictionary to hold data
-#     food_data = {}
+# 4.2 Display how each food contribute each target key
+def food_item_nutrient_chart(response):
+    # Initialize a dictionary to hold data
+    food_data = {}
     
-#     # Iterate through each food item in the response
-#     for food in response.get("foods", []):
-#         food_name = food.get("food_name", "Unknown")
+    # Iterate through each food item in the response
+    for food in response.get("foods", []):
+        food_name = food.get("food_name", "Unknown")
         
-#         # Initialize a dictionary for this food item
-#         food_data[food_name] = {}
+        # Initialize a dictionary for this food item
+        food_data[food_name] = {}
         
-#         # Iterate through each target nutrient and calculate the quantity in this food item
-#         for target in aafco_cc_protein_targets:
-#             attr_id = target["attr_id"]
-#             aafco_nutrient = target["aafco_nutrient"]
+        # Iterate through each target nutrient and calculate the quantity in this food item
+        for target in constants.aafco_cc_protein_targets:  # Corrected reference
+            attr_id = target["attr_id"]
+            aafco_nutrient = target["aafco_nutrient"]
             
-#             # Get the quantity of this nutrient in the current food item
-#             nutrient_quantity = food.get("full_nutrients", {}).get(attr_id, 0)
+            # Get the quantity of this nutrient in the current food item
+            nutrient_quantity = next((nutrient.get("value", 0) \
+                                      for nutrient in food.get("full_nutrients", []) \
+                                      if nutrient.get("attr_id") == attr_id), 0)
             
-#             # Add the nutrient quantity to the food_data dictionary
-#             food_data[food_name][aafco_nutrient] = nutrient_quantity
+            # Add the nutrient quantity to the food_data dictionary
+            food_data[food_name][aafco_nutrient] = nutrient_quantity
     
-#     # Convert the nested dictionary to a DataFrame
-#     df = pd.DataFrame.from_dict(food_data, orient='index')
+    # Convert the nested dictionary to a DataFrame
+    df = pd.DataFrame.from_dict(food_data, orient='index')
     
-#     # Create a heatmap
-#     plt.figure(figsize=(10, len(food_data)/2))  # Adjust size as needed
-#     sns.heatmap(df, annot=True, cmap="YlGnBu", cbar_kws={'label': 'Quantity'})
-#     plt.title('Nutrient Composition for Each Food Item')
-#     plt.ylabel('Food Items')
-#     plt.xlabel('Nutrients')
+    # Sort the DataFrame columns in alphabetical order
+    df = df.sort_index(axis=1)
     
-#     # Display in Streamlit
-#     st.pyplot(plt)
-
+    # Create a heatmap, converting Pandas Index objects to lists
+    fig = ff.create_annotated_heatmap(z=df.values, x=df.columns.tolist(), 
+                                      y=df.index.tolist(), 
+                                      annotation_text=df.values, colorscale='YlGnBu')
+    fig.update_layout(title='Nutrient Component: Amino acid', 
+                      xaxis_title='Nutrients', yaxis_title='Food Items')
+    
+    # Display in Streamlit
+    st.plotly_chart(fig)
 
 
 # 5.final UI presentation
@@ -258,19 +269,21 @@ def get_nutrient_info():
                 with col2:
                     # Corrected the function call with the right parameters
                     display_macronutrient_pie_chart(aggregated_nutrients)
+                    
+                food_item_calorie_chart(response)
                 
                 #3 Compare actual to target
-                st.subheader("Compare to AAFCO_nutrient Profile")
+                st.subheader("Comparison to AAFCO nutrient Profile")
                 comparison_results = nutrient_calculator.compare_against_targets(aggregated_nutrients)
                 #food_item_nutrient_chart(response)
                 
                 # AAFCO protein target
-                chart_title = "AAFCO Amino acid target"
+                chart_title = "AAFCO target_Amino acid "
                 display_nutrient_radar_chart(comparison_results, chart_title) 
+                food_item_nutrient_chart(response)
                 
                 #4 Display full details
                 st.subheader("Full Details:")
-                food_item_calorie_chart(response)
                 st.json(response)
 
 # Call the function to get nutrient info based on user input
