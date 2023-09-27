@@ -223,31 +223,35 @@ def food_item_nutrient_chart(response):
     
     # Convert the nested dictionary to a DataFrame
     df = pd.DataFrame.from_dict(food_data, orient='index')
-    
-    # Sort the DataFrame columns in alphabetical order
     df = df.sort_index(axis=1)
     
     # Create a heatmap, converting Pandas Index objects to lists
     fig = ff.create_annotated_heatmap(z=df.values, x=df.columns.tolist(), 
                                       y=df.index.tolist(), 
                                       annotation_text=df.values, colorscale='YlGnBu')
-    fig.update_layout(title='Nutrient Component: Amino acid', 
-                      xaxis_title='Nutrients', yaxis_title='Food Items')
-    
-    # Display in Streamlit
+    fig.update_layout(title='Nutrient Component: Amino acid')
     st.plotly_chart(fig)
 
 
 # 5.final UI presentation
 def get_nutrient_info():
- 
     st.title("Nutritionix API")
     ingredients_input = st.text_area("Enter ingredient list:")
     
+    # Add a checkbox for the manually added food item
+    is_pea_protein_added = st.checkbox("Include 20g Organic Raw Sprouted Pea Protein")
+    
     # Create a Streamlit button to trigger the API call
     if st.button("Get nutrient info"):
-        if ingredients_input:
-            response = nutritionix_api.get_nutrients(query=ingredients_input)       
+        if ingredients_input or is_pea_protein_added:
+            response = nutritionix_api.get_nutrients(query=ingredients_input) if ingredients_input else {"foods": []}
+            
+            # If the checkbox is ticked, add the nutrient data for "20g Organic Raw Sprouted Pea Protein" from constants.py
+            if is_pea_protein_added:
+                pea_protein_data = constants.SPROUTED_PEA_PROTEIN_DATA
+                response["foods"].append({"food_name": "20g Organic Raw Sprouted Pea Protein", 
+                                          "full_nutrients": pea_protein_data})
+                
             if isinstance(response, dict):
                 
                 #1 recipe summary

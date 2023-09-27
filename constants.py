@@ -7,6 +7,20 @@ atwater_factors = {
     "fat": 8.5,
 }
 
+# 20g Sprouted Pea Protein
+SPROUTED_PEA_PROTEIN_DATA = [
+    {"aafco_nutrient": "Tryptophan", "attr_id": 501, "value": 0.099},
+    {"aafco_nutrient": "Threonine", "attr_id": 502, "value": 0.4785},
+    {"aafco_nutrient": "Isoleucine", "attr_id": 503, "value": 0.6105},
+    {"aafco_nutrient": "Leucine", "attr_id": 504, "value": 1.089},
+    {"aafco_nutrient": "Lysine", "attr_id": 505, "value": 0.8085},
+    {"aafco_nutrient": "Methionine", "attr_id": 506, "value": 0.132},
+    {"aafco_nutrient": "Phenylalanine", "attr_id": 508, "value": 0.7095},
+    {"aafco_nutrient": "Valine", "attr_id": 510, "value": 0.6435},
+]
+
+
+
 # AAFCO Crude Protein Targets
 aafco_cc_protein_targets = [
     {"aafco_nutrient": "Tryptophan", "attr_id": 501, "units per 1000 Kcal ME": "g", "Puppy & Growth": 0.50, "Adult": 0.40},
@@ -22,4 +36,3 @@ aafco_cc_protein_targets = [
     {"aafco_nutrient": "Arginine", "attr_id": 511, "units per 1000 Kcal ME": "g", "Puppy & Growth": 2.50, "Adult": 1.28},
     {"aafco_nutrient": "Histidine", "attr_id": 512, "units per 1000 Kcal ME": "g", "Puppy & Growth": 1.10, "Adult": 0.48},
 ]
-
