@@ -129,13 +129,12 @@ class NutrientCalculator:
         top_10_nutrients = dict(sorted_nutrients[:10])
         return top_10_nutrients
 
-    def compare_against_targets(self, aggregated_nutrients):
-        
-        from constants import aafco_cc_protein_targets
+
+    def compare_against_targets(self, aggregated_nutrients, targets):
         comparison_results = {}
         
-        # Iterate through each nutrient target in the AAFCO targets
-        for target in aafco_cc_protein_targets:
+        # Iterate through each nutrient target in the targets
+        for target in targets:
             attr_id = target["attr_id"]
             aafco_nutrient = target["aafco_nutrient"]
             
@@ -154,6 +153,7 @@ class NutrientCalculator:
             }
         
         return comparison_results
+
 
 
 

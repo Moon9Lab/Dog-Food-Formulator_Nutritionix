@@ -153,22 +153,24 @@ def food_item_calorie_chart(response):
     # Display in Streamlit
     st.pyplot(ax.figure)
 
-
 # 4.1 Comparison to AAFCO target
-def display_nutrient_radar_chart(comparison_results, title):
+def display_nutrient_radar_chart(comparison_results, title, response=None, shrink=False):
+    # ... [rest of the function code]
+    
     # Extract nutrient names, actual values, and target values from comparison_results
     nutrient_names = list(comparison_results.keys())
     actual_values = [comparison_results[nutrient]['Actual'] for nutrient in nutrient_names]
     target_values_adult = [comparison_results[nutrient]['Target Adult'] for nutrient in nutrient_names]
     target_values_puppy = [comparison_results[nutrient]['Target Puppy'] for nutrient in nutrient_names]
     
-    # Create a DataFrame
-    df = pd.DataFrame(dict(
+    # Create a DataFrame for actual values
+    df_actual = pd.DataFrame(dict(
         r=actual_values + actual_values[:1],
         theta=nutrient_names + nutrient_names[:1]
     ))
     
-    fig = px.line_polar(df, r='r', theta='theta', line_close=True, line_shape='linear')
+    # Initialize the figure with actual values trace
+    fig = px.line_polar(df_actual, r='r', theta='theta', line_close=True, line_shape='linear')
     fig.update_traces(fill='toself', line=dict(color='red'))  # Set color for Actual
     fig.data[0].name = 'Actual'
     
@@ -177,14 +179,18 @@ def display_nutrient_radar_chart(comparison_results, title):
         r=target_values_adult + target_values_adult[:1],
         theta=nutrient_names + nutrient_names[:1]
     ))
-    fig.add_trace(go.Scatterpolar(r=target_adult_df['r'], theta=target_adult_df['theta'], fill='toself', line=dict(color='blue'), name='Target Adult'))
+    fig.add_trace(go.Scatterpolar(r=target_adult_df['r'], 
+                                  theta=target_adult_df['theta'], fill='toself', 
+                                  line=dict(color='blue'), name='Target Adult'))
     
     # Add Target Puppy trace
     target_puppy_df = pd.DataFrame(dict(
         r=target_values_puppy + target_values_puppy[:1],
         theta=nutrient_names + nutrient_names[:1]
     ))
-    fig.add_trace(go.Scatterpolar(r=target_puppy_df['r'], theta=target_puppy_df['theta'], fill='toself', line=dict(color='green'), name='Target Puppy'))
+    fig.add_trace(go.Scatterpolar(r=target_puppy_df['r'], 
+                                  theta=target_puppy_df['theta'], fill='toself', 
+                                  line=dict(color='green'), name='Target Puppy'))
     
     # Add legend and title
     fig.update_layout(
@@ -196,8 +202,9 @@ def display_nutrient_radar_chart(comparison_results, title):
     # Display the radar chart in Streamlit
     st.plotly_chart(fig)
 
-# 4.2 Display how each food contribute each target key
-def food_item_nutrient_chart(response):
+# 4.2 Display how each food contribute each target key (Heatmap)
+def food_item_nutrient_chart(response, targets, title):
+
     # Initialize a dictionary to hold data
     food_data = {}
     
@@ -209,7 +216,7 @@ def food_item_nutrient_chart(response):
         food_data[food_name] = {}
         
         # Iterate through each target nutrient and calculate the quantity in this food item
-        for target in constants.aafco_cc_protein_targets:  # Corrected reference
+        for target in targets:
             attr_id = target["attr_id"]
             aafco_nutrient = target["aafco_nutrient"]
             
@@ -229,7 +236,7 @@ def food_item_nutrient_chart(response):
     fig = ff.create_annotated_heatmap(z=df.values, x=df.columns.tolist(), 
                                       y=df.index.tolist(), 
                                       annotation_text=df.values, colorscale='YlGnBu')
-    fig.update_layout(title='Nutrient Component: Amino acid')
+    fig.update_layout(title=title)
     st.plotly_chart(fig)
 
 
@@ -271,24 +278,57 @@ def get_nutrient_info():
                     st.json({k: top_10_nutrients[k] for k in sorted(top_10_nutrients)})
 
                 with col2:
-                    # Corrected the function call with the right parameters
                     display_macronutrient_pie_chart(aggregated_nutrients)
                     
                 food_item_calorie_chart(response)
                 
                 #3 Compare actual to target
                 st.subheader("Comparison to AAFCO nutrient Profile")
-                comparison_results = nutrient_calculator.compare_against_targets(aggregated_nutrients)
-                #food_item_nutrient_chart(response)
                 
                 # AAFCO protein target
-                chart_title = "AAFCO target_Amino acid "
-                display_nutrient_radar_chart(comparison_results, chart_title) 
-                food_item_nutrient_chart(response)
+                chart_title_protein = "AAFCO target - Amino acid"
+                comparison_results_protein = nutrient_calculator.compare_against_targets(
+                                            aggregated_nutrients, constants.aafco_cc_protein_targets)
+                display_nutrient_radar_chart(comparison_results_protein, chart_title_protein)
+                food_item_nutrient_chart(response, constants.aafco_cc_protein_targets, 'Nutrient Component: Amino acid')
                 
+                # AAFCO fat target
+                chart_title_fat = "AAFCO target - Fatty acids"
+                comparison_results_fat = nutrient_calculator.compare_against_targets(
+                                            aggregated_nutrients, constants.aafco_cc_fat_targets)
+                display_nutrient_radar_chart(comparison_results_fat, chart_title_fat)
+                food_item_nutrient_chart(response, constants.aafco_cc_fat_targets, 'Nutrient Component: Fats')
+
+                # AAFCO mineral target
+                st.subheader("AAFCO Target - Minerals")
+
+                # Display the first radar chart
+                chart_title_mineral1 = "AAFCO Target - Minerals (mg)"
+                comparison_results_mineral1 = nutrient_calculator.compare_against_targets(
+                                                aggregated_nutrients, constants.aafco_cc_mineral_targets_mg)
+                display_nutrient_radar_chart(comparison_results_mineral1, chart_title_mineral1, response, shrink=True)
+
+                # Display the second radar chart
+                chart_title_mineral2 = "AAFCO Target - Minerals (g)"
+                comparison_results_mineral2 = nutrient_calculator.compare_against_targets(
+                                                aggregated_nutrients, constants.aafco_cc_mineral_targets_g)
+                display_nutrient_radar_chart(comparison_results_mineral2, chart_title_mineral2, response, shrink=True)
+
+                # Combine the two sets of mineral targets for the heatmap
+                combined_mineral_targets = constants.aafco_cc_mineral_targets_mg + constants.aafco_cc_mineral_targets_g
+                food_item_nutrient_chart(response, combined_mineral_targets, 'Nutrient Component: Combined Minerals')   
+                
+                # AAFCO vitamines target
+                chart_title_vitamin = "AAFCO target - Vitamins & others"
+                comparison_results_vitamin = nutrient_calculator.compare_against_targets(
+                                            aggregated_nutrients, constants.aafco_cc_vitamin_targets)
+                display_nutrient_radar_chart(comparison_results_vitamin, chart_title_vitamin)
+                food_item_nutrient_chart(response, constants.aafco_cc_vitamin_targets, 'Nutrient Component: Vitamins')
+
                 #4 Display full details
                 st.subheader("Full Details:")
                 st.json(response)
+
 
 # Call the function to get nutrient info based on user input
 get_nutrient_info()

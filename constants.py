@@ -21,8 +21,9 @@ SPROUTED_PEA_PROTEIN_DATA = [
 
 
 
-# AAFCO Crude Protein Targets
+# AAFCO Nutrient Profile target
 aafco_cc_protein_targets = [
+    #{"aafco_nutrient": "Protein", "attr_id": 203, "units per 1000 Kcal ME": "g", "Puppy & Growth": 9, "Adult": 7.2},
     {"aafco_nutrient": "Tryptophan", "attr_id": 501, "units per 1000 Kcal ME": "g", "Puppy & Growth": 0.50, "Adult": 0.40},
     {"aafco_nutrient": "Threonine", "attr_id": 502, "units per 1000 Kcal ME": "g", "Puppy & Growth": 2.60, "Adult": 1.20},
     {"aafco_nutrient": "Isoleucine", "attr_id": 503, "units per 1000 Kcal ME": "g", "Puppy & Growth": 1.78, "Adult": 0.95},
@@ -35,4 +36,42 @@ aafco_cc_protein_targets = [
     {"aafco_nutrient": "Valine", "attr_id": 510, "units per 1000 Kcal ME": "g", "Puppy & Growth": 1.70, "Adult": 1.23},
     {"aafco_nutrient": "Arginine", "attr_id": 511, "units per 1000 Kcal ME": "g", "Puppy & Growth": 2.50, "Adult": 1.28},
     {"aafco_nutrient": "Histidine", "attr_id": 512, "units per 1000 Kcal ME": "g", "Puppy & Growth": 1.10, "Adult": 0.48},
+]
+
+aafco_cc_fat_targets = [
+    #{"aafco_nutrient": "Crude Fat", "attr_id": 204, "units per 1000 Kcal ME": "g", "Puppy & Growth": 21.3, "Adult": 13.8},
+    {"aafco_nutrient": "Linoleic acid", "attr_id": 675, "units per 1000 Kcal ME": "g", "Puppy & Growth": 3.3, "Adult": 2.8},
+    {"aafco_nutrient": "PUFA 18:3 n-3 c,c,c (ALA)", "attr_id": 851, "units per 1000 Kcal ME": "g", "Puppy & Growth": 0.2, "Adult": 0.2},
+    {"aafco_nutrient": "PUFA 20:5 n-3 (EPA)", "attr_id": 629, "units per 1000 Kcal ME": "g", "Puppy & Growth": 0.05, "Adult": 0.05},
+    {"aafco_nutrient": "PUFA 22:6 n-3 (DHA)", "attr_id": 621, "units per 1000 Kcal ME": "g", "Puppy & Growth": 0.05, "Adult": 0.05}
+]
+
+aafco_cc_mineral_targets_g = [
+    {"aafco_nutrient": "Calcium", "attr_id": 301, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 3000, "Adult": 1250},
+    {"aafco_nutrient": "Phosphorus", "attr_id": 305, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 2500, "Adult": 1000},
+    {"aafco_nutrient": "Potassium", "attr_id": 306, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 1500, "Adult": 1500},
+    {"aafco_nutrient": "Sodium", "attr_id": 307, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 800, "Adult": 200},
+    {"aafco_nutrient": "Magnesium", "attr_id": 304, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 150, "Adult": 150},
+]
+
+aafco_cc_mineral_targets_mg = [
+    {"aafco_nutrient": "Iron", "attr_id": 303, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 22, "Adult": 10},
+    {"aafco_nutrient": "Copper", "attr_id": 312, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 3.1, "Adult": 1.83},
+    {"aafco_nutrient": "Manganese", "attr_id": 315, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 1.8, "Adult": 1.25},
+    {"aafco_nutrient": "Zinc", "attr_id": 309, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 25, "Adult": 20},
+    {"aafco_nutrient": "Selenium", "attr_id": 317, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 0.09, "Adult": 0.08}
+]
+
+aafco_cc_vitamin_targets = [
+    {"aafco_nutrient": "Vitamin A", "attr_id": 318, "units per 1000 Kcal ME": "IU", "Puppy & Growth": 1250, "Adult": 1250},
+    {"aafco_nutrient": "Vitamin D", "attr_id": 324, "units per 1000 Kcal ME": "IU", "Puppy & Growth": 125, "Adult": 125},
+    {"aafco_nutrient": "Vitamin E", "attr_id": 323, "units per 1000 Kcal ME": "IU", "Puppy & Growth": 12.5, "Adult": 12.5},
+    {"aafco_nutrient": "Thiamine", "attr_id": 404, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 0.56, "Adult": 0.56},
+    {"aafco_nutrient": "Riboflavin", "attr_id": 405, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 1.3, "Adult": 1.3},
+    {"aafco_nutrient": "Pantothenic acid", "attr_id": 410, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 3.0, "Adult": 3.0},
+    {"aafco_nutrient": "Niacin", "attr_id": 406, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 3.4, "Adult": 3.4},
+    {"aafco_nutrient": "Pyridoxine", "attr_id": 415, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 0.38, "Adult": 0.38},
+    {"aafco_nutrient": "Folic acid", "attr_id": 431, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 0.054, "Adult": 0.054},
+    {"aafco_nutrient": "Vitamin B12", "attr_id": 578, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 0.007, "Adult": 0.007},
+    {"aafco_nutrient": "Choline", "attr_id": 421, "units per 1000 Kcal ME": "mg", "Puppy & Growth": 340, "Adult": 340}
 ]
