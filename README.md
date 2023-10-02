@@ -1,43 +1,53 @@
-# Nutrition Info App
 
-This is a simple web application to fetch and display nutrition information of food ingredients using the Nutritionix API. The app is developed with Python and Streamlit, and visualizes the data using pandas, matplotlib, and PIL. 
+# Dog Food Formulator using Nutritionix API
+
+This project utilizes the Nutritionix API to analyze nutrient content in dog food recipes and compares them to the AAFCO dog food nutrient profiles.
 
 ## Features
 
-- Enter your food ingredients and get detailed nutrition information including weight, calories, macronutrients (fat, protein, carbohydrates), fiber, and vitamins (A, C, D, K), as well as minerals (calcium, phosphorus).
-- Visualize the macronutrient distribution per ingredient with a stacked bar chart.
-- See the total caloric distribution from macronutrients in a pie chart.
-- View thumbnail images of your ingredients.
+- **Recipe Analysis:** Break down nutrient content of user-input recipes.
+- **Comparison with AAFCO Nutrient Profiles:** Visualize how the nutrient content of a recipe compares with AAFCO nutrient profiles using radar charts and heatmaps.
+- **Detailed Nutrient Breakdown:** Explore detailed nutrient breakdown for each ingredient and the entire recipe.
 
-## Instructions
+## Requirements
 
-1. Clone the repository and navigate to the project directory.
-2. Install the necessary Python packages listed in the `requirements.txt` file. You can do this by running `pip install -r requirements.txt`.
-3. Set up your Nutritionix API credentials by creating a `.env` file in the project directory with the following structure:
-
-    ```
-    NUTRITIONIX_APP_ID=your_app_id
-    NUTRITIONIX_APP_KEY=your_app_key
-    ```
-
-    Replace `your_app_id` and `your_app_key` with your actual Nutritionix app ID and app key.
-
-4. Run the app by typing `streamlit run Nutritionix.py` in your terminal.
-
-## Libraries Used
-
+- Python 3.x
 - Streamlit
-- pandas
-- numpy
-- matplotlib
-- Pillow
-- requests
-- json
-- dotenv
+- Plotly
+- Requests
+- Pandas
 
-## Notes
+## Setup & Running the Application
 
-- This app is for educational purposes and is not intended for professional dietary advice.
-- The app requires an API key from Nutritionix, which is subject to their terms and conditions. Make sure to understand and comply with those when using their API. 
+1. Clone the repository:
+   ```shell
+   git clone [repo-link]
+   ```
+2. Install the dependencies:
+   ```shell
+   pip install -r requirements.txt
+   ```
+3. Obtain API credentials from [Nutritionix](https://developer.nutritionix.com/) and set them in `nutritionix_api.py`.
+4. Run the application using Streamlit:
+   ```shell
+   streamlit run nutritionix_UI.py
+   ```
 
-I hope you find this app useful and enjoyable!
+## Usage Instructions
+
+1. Input your ingredients into the provided text area.
+2. Select additional options if desired (e.g., including specific protein sources).
+3. Click "Get nutrient info" to retrieve and display the nutrient data.
+
+## Future Enhancements
+
+In the pipeline for future development is the integration of the USDA food database, aiming to cross-validate nutrient data obtained from the Nutritionix API, thereby bolstering the reliability and comprehensiveness of nutrient analysis by amalgamating data from diverse sources. Other anticipated enhancements include the introduction of a user authentication system to facilitate recipe and nutrient analysis saving, the generation of recipe adjustment suggestions for alignment with AAFCO nutrient profiles, the expansion to accommodate nutrient analysis for various pets, improvements in data visualization and interactivity, the incorporation of diverse unit inputs with automated conversions, and the capability to export analytical data and visuals in various formats for offline utilization and sharing.
+
+
+## License
+This project is distributed under the MIT License. 
+
+## Acknowledgments
+
+- **Nutritionix API:** For providing comprehensive nutrient data.
+- **AAFCO:** For establishing nutrient profiles and guidelines.
