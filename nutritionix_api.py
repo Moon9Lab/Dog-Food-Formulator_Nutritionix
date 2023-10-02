@@ -3,6 +3,7 @@ import pandas as pd
 import constants
 from typing import Any, Dict, Optional, Union
 from collections import Counter
+import math
 
 class NutritionixAPI:
     BASE_URL = "https://trackapi.nutritionix.com"
@@ -128,31 +129,49 @@ class NutrientCalculator:
         )
         top_10_nutrients = dict(sorted_nutrients[:10])
         return top_10_nutrients
-
+   
 
     def compare_against_targets(self, aggregated_nutrients, targets):
+
         comparison_results = {}
-        
+        # Calculate caloric density and metabolizable energy using the NutrientCalculator class
+        caloric_content_info = self.calculate_calorie_content_me(aggregated_nutrients)
+        me = caloric_content_info['metabolizable_energy']  
+        scaling_factor = me / 1000
+
         # Iterate through each nutrient target in the targets
         for target in targets:
             attr_id = target["attr_id"]
             aafco_nutrient = target["aafco_nutrient"]
-            
+
             # Get the actual nutrient value from the aggregated nutrients
             actual_value = aggregated_nutrients.get(attr_id, 0)
-            
+
+            # Apply logarithmic scaling to the actual value
+            actual_value_log = math.log10(actual_value + 1)
+
             # Get the target values for both 'Puppy & Growth' and 'Adult'
-            target_value_puppy = target["Puppy & Growth"]
-            target_value_adult = target["Adult"]
-            
+            target_value_puppy = target["Puppy & Growth"] * scaling_factor
+            target_value_adult = target["Adult"] * scaling_factor
+
+            # Apply logarithmic scaling to the target values
+            target_value_puppy_log = math.log10(target_value_puppy + 1)
+            target_value_adult_log = math.log10(target_value_adult + 1)
+
             # Add the comparison results to the dictionary
             comparison_results[aafco_nutrient] = {
-                "Actual": actual_value,
-                "Target Puppy": target_value_puppy,
-                "Target Adult": target_value_adult
+                "Actual": actual_value_log,
+                "Target Puppy": target_value_puppy_log,
+                "Target Adult": target_value_adult_log
             }
-        
+
         return comparison_results
+
+
+
+
+ 
+
 
 
 

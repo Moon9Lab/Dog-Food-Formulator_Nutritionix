@@ -31,6 +31,9 @@ def display_recipe_summary(response):
     total_water = 0
     total_calories = 0
     aggregated_nutrients = nutrient_calculator.aggregate_nutrients(response)
+    total_water = aggregated_nutrients.get(255, 0)
+    calcium = aggregated_nutrients.get(301, 0)
+    phosphorus = aggregated_nutrients.get(305, 0)
     
     for food in response.get("foods", []):
         food_name = food.get("food_name", "Unknown")
@@ -42,11 +45,6 @@ def display_recipe_summary(response):
         total_weight += serving_qty
         total_calories += calories
         
-        # Calculate total water (attr_id == 255) 
-        total_water += sum(nutrient.get("value", 0) \
-                           for nutrient in food.get("full_nutrients", []) \
-                           if nutrient.get("attr_id") == 255)
-        
         summary_items.append((f"{food_name} ({serving_qty}{serving_unit})", serving_qty))
     
     summary_items.sort(key=lambda x: x[1], reverse=True)
@@ -54,20 +52,23 @@ def display_recipe_summary(response):
     
     # Calculate caloric density and metabolizable energy using the NutrientCalculator class
     caloric_content_info = nutrient_calculator.calculate_calorie_content_me(aggregated_nutrients)
+    me = caloric_content_info['metabolizable_energy']  
     caloric_content_me = caloric_content_info['caloric_content']  
     
     water_percentage = (total_water / total_weight) * 100 if total_weight > 0 else 0
-
+    ca_p_ratio =calcium / phosphorus if phosphorus != 0 else 0
+    
     st.subheader("Recipe Snapshot:")
     st.write(", ".join(sorted_summary_strings))
 
     # Create a DataFrame for the table
     table_data = {
-        "": ["Serving size", "Gross Energy", "Calorie Content (ME)", "Moisture %"],
+        "": ["Serving size", "Metabolizable energy (ME)", "Calorie Content_ME", "Ca:P Ratio", "Moisture %"],
         "Value": [
             f"{total_weight:.2f} g", 
-            f"{total_calories:.2f} Kcal",
-            f"{caloric_content_me:.2f} kcal/kg",  # Using 'caloric_content_me' here
+            f"{me:.2f} kcal",
+            f"{caloric_content_me:.2f} kcal/kg",
+            f"{ca_p_ratio:.2f}:1",
             f"{water_percentage:.2f} %"
         ]
     }
@@ -158,6 +159,7 @@ def display_nutrient_radar_chart(comparison_results, title, response=None, shrin
     # ... [rest of the function code]
     
     # Extract nutrient names, actual values, and target values from comparison_results
+    # Note: The values are already in logarithmic scale.
     nutrient_names = list(comparison_results.keys())
     actual_values = [comparison_results[nutrient]['Actual'] for nutrient in nutrient_names]
     target_values_adult = [comparison_results[nutrient]['Target Adult'] for nutrient in nutrient_names]
@@ -242,23 +244,34 @@ def food_item_nutrient_chart(response, targets, title):
 
 # 5.final UI presentation
 def get_nutrient_info():
-    st.title("Nutritionix API")
+    st.title("Dog Food Formulator_nutritionix api")
     ingredients_input = st.text_area("Enter ingredient list:")
     
     # Add a checkbox for the manually added food item
-    is_pea_protein_added = st.checkbox("Include 20g Organic Raw Sprouted Pea Protein")
+    is_pea_protein_added = st.checkbox("Include 10g Organic Raw Sprouted Pea Protein")
+    is_flaxseed_meal_added = st.checkbox("Include 3g Flaxseed Meal")
+    is_nutritional_yeast_added = st.checkbox("Include 3g Nutritional Yeast") 
     
     # Create a Streamlit button to trigger the API call
     if st.button("Get nutrient info"):
         if ingredients_input or is_pea_protein_added:
-            response = nutritionix_api.get_nutrients(query=ingredients_input) if ingredients_input else {"foods": []}
+            response = nutritionix_api.get_nutrients\
+                                        (query=ingredients_input) \
+                                        if ingredients_input else {"foods": []}
             
-            # If the checkbox is ticked, add the nutrient data for "20g Organic Raw Sprouted Pea Protein" from constants.py
+            # Checkbox to import mannually added nutrient value
             if is_pea_protein_added:
                 pea_protein_data = constants.SPROUTED_PEA_PROTEIN_DATA
-                response["foods"].append({"food_name": "20g Organic Raw Sprouted Pea Protein", 
+                response["foods"].append({"food_name": "10g Organic Raw Sprouted Pea Protein", 
                                           "full_nutrients": pea_protein_data})
-                
+            if is_flaxseed_meal_added:  
+                flaxseed_meal_data = constants.FLAXSEED_MEAL_DATA
+                response["foods"].append({"food_name": "3g Flaxseed Meal", 
+                                          "full_nutrients": flaxseed_meal_data})
+            if is_nutritional_yeast_added:  
+                nutritional_yeast_data = constants.NUTRITIONAL_YEAST_DATA 
+                response["foods"].append({"food_name": "5g Nutritional Yeast", 
+                                          "full_nutrients": nutritional_yeast_data})
             if isinstance(response, dict):
                 
                 #1 recipe summary
@@ -290,40 +303,50 @@ def get_nutrient_info():
                 comparison_results_protein = nutrient_calculator.compare_against_targets(
                                             aggregated_nutrients, constants.aafco_cc_protein_targets)
                 display_nutrient_radar_chart(comparison_results_protein, chart_title_protein)
-                food_item_nutrient_chart(response, constants.aafco_cc_protein_targets, 'Nutrient Component: Amino acid')
+                food_item_nutrient_chart(response, \
+                                         constants.aafco_cc_protein_targets, \
+                                         'Nutrient Component: Amino acid')
                 
                 # AAFCO fat target
                 chart_title_fat = "AAFCO target - Fatty acids"
                 comparison_results_fat = nutrient_calculator.compare_against_targets(
                                             aggregated_nutrients, constants.aafco_cc_fat_targets)
                 display_nutrient_radar_chart(comparison_results_fat, chart_title_fat)
-                food_item_nutrient_chart(response, constants.aafco_cc_fat_targets, 'Nutrient Component: Fats')
+                food_item_nutrient_chart(response, \
+                                         constants.aafco_cc_fat_targets, \
+                                         'Nutrient Component: Fats')
 
                 # AAFCO mineral target
                 st.subheader("AAFCO Target - Minerals")
 
-                # Display the first radar chart
-                chart_title_mineral1 = "AAFCO Target - Minerals (mg)"
-                comparison_results_mineral1 = nutrient_calculator.compare_against_targets(
-                                                aggregated_nutrients, constants.aafco_cc_mineral_targets_mg)
-                display_nutrient_radar_chart(comparison_results_mineral1, chart_title_mineral1, response, shrink=True)
+                # Radar chart split
+                chart_title_mineral = "AAFCO Target - Minerals"
+                comparison_results_mineral = nutrient_calculator.\
+                                            compare_against_targets(
+                                            aggregated_nutrients, 
+                                            constants.aafco_cc_mineral_targets)
+               
+                display_nutrient_radar_chart(comparison_results_mineral, \
+                                             chart_title_mineral, response, shrink=True)
 
-                # Display the second radar chart
-                chart_title_mineral2 = "AAFCO Target - Minerals (g)"
-                comparison_results_mineral2 = nutrient_calculator.compare_against_targets(
-                                                aggregated_nutrients, constants.aafco_cc_mineral_targets_g)
-                display_nutrient_radar_chart(comparison_results_mineral2, chart_title_mineral2, response, shrink=True)
-
-                # Combine the two sets of mineral targets for the heatmap
-                combined_mineral_targets = constants.aafco_cc_mineral_targets_mg + constants.aafco_cc_mineral_targets_g
-                food_item_nutrient_chart(response, combined_mineral_targets, 'Nutrient Component: Combined Minerals')   
+                food_item_nutrient_chart(response,\
+                                        constants.aafco_cc_mineral_targets,
+                                        'Nutrient Component: Vitamin') 
                 
-                # AAFCO vitamines target
-                chart_title_vitamin = "AAFCO target - Vitamins & others"
-                comparison_results_vitamin = nutrient_calculator.compare_against_targets(
-                                            aggregated_nutrients, constants.aafco_cc_vitamin_targets)
-                display_nutrient_radar_chart(comparison_results_vitamin, chart_title_vitamin)
-                food_item_nutrient_chart(response, constants.aafco_cc_vitamin_targets, 'Nutrient Component: Vitamins')
+                
+                # AAFCO vitamin target
+                chart_title_v = "AAFCO Target - Vitamin"
+                comparison_results_v = nutrient_calculator.\
+                                        compare_against_targets(
+                                        aggregated_nutrients, constants.aafco_cc_vitamin_targets)
+                                        
+                display_nutrient_radar_chart(comparison_results_v, \
+                                             chart_title_v, response, shrink=True)
+                
+                food_item_nutrient_chart(response,\
+                                        constants.aafco_cc_vitamin_targets,
+                                        'Nutrient Component: Vitamin')
+                
 
                 #4 Display full details
                 st.subheader("Full Details:")
